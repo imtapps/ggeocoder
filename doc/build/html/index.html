@@ -1,0 +1,224 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Welcome to ggeocoder’s documentation! &mdash; ggeocoder 1.0.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="ggeocoder 1.0.0 documentation" href="#" />
+    <link rel="next" title="Overview" href="getting_started.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="getting_started.html" title="Overview"
+             accesskey="N">next</a> |</li>
+        <li><a href="#">ggeocoder 1.0.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="welcome-to-ggeocoder-s-documentation">
+<h1>Welcome to ggeocoder&#8217;s documentation!<a class="headerlink" href="#welcome-to-ggeocoder-s-documentation" title="Permalink to this headline">¶</a></h1>
+<p>Contents:</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#installing-ggeocoder">Installing ggeocoder</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="geocoder_api.html">Using the Geocoder API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="geocoder_api.html#geocoding">Geocoding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="geocoder_api.html#reverse-geocoding">Reverse Geocoding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="geocoder_api.html#working-with-results">Working with Results</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="customizing_result_class.html">Customizing the result class returned</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="customizing_result_class.html#id1">Customizing Result Class</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="module-ggeocoder">
+<span id="modules-provided"></span><h1>Modules Provided<a class="headerlink" href="#module-ggeocoder" title="Permalink to this headline">¶</a></h1>
+<p>Python library for using Google Geocoding API V3.</p>
+<dl class="class">
+<dt id="ggeocoder.Geocoder">
+<em class="property">class </em><tt class="descclassname">ggeocoder.</tt><tt class="descname">Geocoder</tt><big>(</big><em>client_id=None</em>, <em>private_key=None</em><big>)</big><a class="reference internal" href="_modules/ggeocoder.html#Geocoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ggeocoder.Geocoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interface for interacting with Google&#8217;s Geocoding V3&#8217;s API.
+<a class="reference external" href="http://code.google.com/apis/maps/documentation/geocoding/">http://code.google.com/apis/maps/documentation/geocoding/</a></p>
+<p>If you have a Google Maps Premier account, you can supply your
+client_id and private_key and the <a class="reference internal" href="#ggeocoder.Geocoder" title="ggeocoder.Geocoder"><tt class="xref py py-class docutils literal"><span class="pre">Geocoder</span></tt></a> will make
+the request with a properly signed url</p>
+<dl class="method">
+<dt id="ggeocoder.Geocoder.geocode">
+<tt class="descname">geocode</tt><big>(</big><em>address</em>, <em>**params</em><big>)</big><a class="reference internal" href="_modules/ggeocoder.html#Geocoder.geocode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ggeocoder.Geocoder.geocode" title="Permalink to this definition">¶</a></dt>
+<dd><div class="line-block">
+<div class="line">Params may be any valid parameter accepted by Google&#8217;s API.</div>
+<div class="line"><a class="reference external" href="http://code.google.com/apis/maps/documentation/geocoding/#GeocodingRequests">http://code.google.com/apis/maps/documentation/geocoding/#GeocodingRequests</a></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="ggeocoder.Geocoder.reverse_geocode">
+<tt class="descname">reverse_geocode</tt><big>(</big><em>lat</em>, <em>lng</em>, <em>**params</em><big>)</big><a class="reference internal" href="_modules/ggeocoder.html#Geocoder.reverse_geocode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ggeocoder.Geocoder.reverse_geocode" title="Permalink to this definition">¶</a></dt>
+<dd><div class="line-block">
+<div class="line">Params may be any valid parameter accepted by Google&#8217;s API.</div>
+<div class="line"><a class="reference external" href="http://code.google.com/apis/maps/documentation/geocoding/#GeocodingRequests">http://code.google.com/apis/maps/documentation/geocoding/#GeocodingRequests</a></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="ggeocoder.GeoResult">
+<em class="property">class </em><tt class="descclassname">ggeocoder.</tt><tt class="descname">GeoResult</tt><big>(</big><em>data</em><big>)</big><a class="reference internal" href="_modules/ggeocoder.html#GeoResult"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ggeocoder.GeoResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents the data for a single result returned by the google maps api.
+Allows you to access the data from the response using attributes instead
+of diving deep into the returned dictionary structure.</p>
+<p>You can create aliases for the default &#8216;address_components&#8217; of the response
+by settings the <cite>attr_mapping</cite> field to a dict of your mapping.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">attr_mapping</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;state&#39;</span><span class="p">:</span> <span class="s">&#39;administrative_area_level_1&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+<dl class="attribute">
+<dt id="ggeocoder.GeoResult.coordinates">
+<tt class="descname">coordinates</tt><a class="reference internal" href="_modules/ggeocoder.html#GeoResult.coordinates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ggeocoder.GeoResult.coordinates" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns lat, lng coordinates as float types</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ggeocoder.GeoResult.formatted_address">
+<tt class="descname">formatted_address</tt><a class="reference internal" href="_modules/ggeocoder.html#GeoResult.formatted_address"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ggeocoder.GeoResult.formatted_address" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns fully formatted address result.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ggeocoder.GeoResult.is_valid_address">
+<tt class="descname">is_valid_address</tt><a class="reference internal" href="_modules/ggeocoder.html#GeoResult.is_valid_address"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ggeocoder.GeoResult.is_valid_address" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns True when geocode result is a street address, False if not</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ggeocoder.GeoResult.raw">
+<tt class="descname">raw</tt><a class="reference internal" href="_modules/ggeocoder.html#GeoResult.raw"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ggeocoder.GeoResult.raw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the raw dictionary object that the maps api returned
+for this single result.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="ggeocoder.GeocodeError">
+<em class="property">exception </em><tt class="descclassname">ggeocoder.</tt><tt class="descname">GeocodeError</tt><big>(</big><em>status</em>, <em>url=None</em>, <em>response=None</em><big>)</big><a class="reference internal" href="_modules/ggeocoder.html#GeocodeError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ggeocoder.GeocodeError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for errors in the <a class="reference internal" href="#module-ggeocoder" title="ggeocoder"><tt class="xref py py-mod docutils literal"><span class="pre">ggeocoder</span></tt></a> module.</p>
+<p>Methods of the <a class="reference internal" href="#ggeocoder.Geocoder" title="ggeocoder.Geocoder"><tt class="xref py py-class docutils literal"><span class="pre">Geocoder</span></tt></a> raise this when the Google Maps API
+returns a status of anything other than &#8216;OK&#8217;.</p>
+<p>See <a class="reference external" href="http://code.google.com/apis/maps/documentation/geocoding/index.html#StatusCodes">http://code.google.com/apis/maps/documentation/geocoding/index.html#StatusCodes</a>
+for status codes and their meanings.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><em>Index</em></a></li>
+<li><a class="reference internal" href="py-modindex.html"><em>Module Index</em></a></li>
+<li><a class="reference internal" href="search.html"><em>Search Page</em></a></li>
+</ul>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Welcome to ggeocoder&#8217;s documentation!</a><ul>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-ggeocoder">Modules Provided</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+  <h4>Next topic</h4>
+  <p class="topless"><a href="getting_started.html"
+                        title="next chapter">Overview</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/index.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="getting_started.html" title="Overview"
+             >next</a> |</li>
+        <li><a href="#">ggeocoder 1.0.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Aaron Madison.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.
+    </div>
+  </body>
+</html>

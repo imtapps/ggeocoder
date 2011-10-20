@@ -1,0 +1,424 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>ggeocoder &mdash; ggeocoder 1.0.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="ggeocoder 1.0.0 documentation" href="../index.html" />
+    <link rel="up" title="Module code" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">ggeocoder 1.0.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for ggeocoder</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+<span class="c">#</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Python library for using Google Geocoding API V3.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">base64</span>
+<span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">import</span> <span class="nn">hmac</span>
+<span class="kn">import</span> <span class="nn">urllib</span>
+<span class="kn">import</span> <span class="nn">urllib2</span>
+<span class="kn">import</span> <span class="nn">urlparse</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">json</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">simplejson</span> <span class="kn">as</span> <span class="nn">json</span>
+
+
+<span class="n">VERSION</span> <span class="o">=</span> <span class="s">&#39;1.0.0&#39;</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;Geocoder&#39;</span><span class="p">,</span> <span class="s">&#39;GeocodeError&#39;</span><span class="p">,</span> <span class="s">&#39;GeoResult&#39;</span><span class="p">,</span> <span class="s">&#39;GeocoderResult&#39;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="GeocodeError"><a class="viewcode-back" href="../index.html#ggeocoder.GeocodeError">[docs]</a><span class="k">class</span> <span class="nc">GeocodeError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for errors in the :mod:`ggeocoder` module.</span>
+<span class="sd">        </span>
+<span class="sd">    Methods of the :class:`Geocoder` raise this when something goes wrong.</span>
+<span class="sd">        </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c">#: See http://code.google.com/apis/maps/documentation/geocoding/index.html#StatusCodes</span>
+    <span class="c">#: for information on the meaning of these status codes.</span>
+    <span class="n">G_GEO_OK</span> <span class="o">=</span> <span class="s">&quot;OK&quot;</span>
+    <span class="n">G_GEO_ZERO_RESULTS</span> <span class="o">=</span> <span class="s">&quot;ZERO_RESULTS&quot;</span>
+    <span class="n">G_GEO_OVER_QUERY_LIMIT</span> <span class="o">=</span> <span class="s">&quot;OVER_QUERY_LIMIT&quot;</span>
+    <span class="n">G_GEO_REQUEST_DENIED</span> <span class="o">=</span> <span class="s">&quot;REQUEST_DENIED&quot;</span>
+    <span class="n">G_GEO_MISSING_QUERY</span> <span class="o">=</span> <span class="s">&quot;INVALID_REQUEST&quot;</span>
+        
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">response</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create an exception with a status and optional full response.</span>
+<span class="sd">                </span>
+<span class="sd">        :param status: Either a ``G_GEO_`` code or a string explaining the</span>
+<span class="sd">         exception.</span>
+<span class="sd">        :type status: int or string</span>
+<span class="sd">        :param url: The query URL that resulted in the error, if any.</span>
+<span class="sd">        :type url: string</span>
+<span class="sd">        :param response: The actual response returned from Google, if any.</span>
+<span class="sd">        :type response: dict</span>
+<span class="sd">                </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">GeocodeError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">status</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="n">status</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">url</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">response</span> <span class="o">=</span> <span class="n">response</span>
+        
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a string representation of this :exc:`GeocoderError`.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s">&#39;Error: {0}</span><span class="se">\n</span><span class="s">Query: {1}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">__unicode__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a unicode representation of this :exc:`GeocoderError`.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">unicode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__str__</span><span class="p">())</span>
+</div>
+<div class="viewcode-block" id="GeoResult"><a class="viewcode-back" href="../index.html#ggeocoder.GeoResult">[docs]</a><span class="k">class</span> <span class="nc">GeoResult</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A single geocoded json result.</span>
+
+<span class="sd">    Provide shortcut to ease field retrieval, looking at &#39;types&#39; in each</span>
+<span class="sd">    &#39;address_components&#39;.</span>
+<span class="sd">    Example:</span>
+<span class="sd">        result.country</span>
+<span class="sd">        result.postal_code</span>
+
+<span class="sd">    You can also choose a different property to display for each lookup type.</span>
+<span class="sd">    Example:</span>
+<span class="sd">        result.country__short_name</span>
+
+<span class="sd">    By default, use &#39;long_name&#39; property of lookup type, so:</span>
+<span class="sd">        result.country</span>
+<span class="sd">    and:</span>
+<span class="sd">        result.country__long_name</span>
+<span class="sd">    are equivalent.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">attr_mapping</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GeoResult</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">return</span> <span class="bp">False</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">unicode</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&#39;utf-8&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__unicode__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">formatted_address</span>
+    
+    <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="n">lookup</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;__&#39;</span><span class="p">)</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="n">lookup</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c"># customization can allow a mapping of attribute shortcuts to look up.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr_mapping</span><span class="p">:</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr_mapping</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span> <span class="n">prop</span> <span class="o">=</span> <span class="n">lookup</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span> <span class="n">prop</span> <span class="o">=</span> <span class="s">&#39;long_name&#39;</span>
+
+        <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s">&#39;address_components&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">elem</span><span class="p">[</span><span class="s">&#39;types&#39;</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="n">elem</span><span class="p">[</span><span class="n">prop</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="s">&quot;&#39;{0}&#39; does not have the attribute &#39;{1}&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="GeoResult.formatted_address"><a class="viewcode-back" href="../index.html#ggeocoder.GeoResult.formatted_address">[docs]</a>    <span class="k">def</span> <span class="nf">formatted_address</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s">&#39;formatted_address&#39;</span><span class="p">]</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="GeoResult.coordinates"><a class="viewcode-back" href="../index.html#ggeocoder.GeoResult.coordinates">[docs]</a>    <span class="k">def</span> <span class="nf">coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">loc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s">&#39;geometry&#39;</span><span class="p">][</span><span class="s">&#39;location&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">loc</span><span class="p">[</span><span class="s">&#39;lat&#39;</span><span class="p">],</span> <span class="n">loc</span><span class="p">[</span><span class="s">&#39;lng&#39;</span><span class="p">]</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="GeoResult.is_valid_address"><a class="viewcode-back" href="../index.html#ggeocoder.GeoResult.is_valid_address">[docs]</a>    <span class="k">def</span> <span class="nf">is_valid_address</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s">&#39;types&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="s">&#39;street_address&#39;</span><span class="p">]</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="GeoResult.raw"><a class="viewcode-back" href="../index.html#ggeocoder.GeoResult.raw">[docs]</a>    <span class="k">def</span> <span class="nf">raw</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span>
+
+
+</div></div>
+<div class="viewcode-block" id="GeocoderResult"><a class="viewcode-back" href="../index.html#ggeocoder.GeocoderResult">[docs]</a><span class="k">class</span> <span class="nc">GeocoderResult</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Helps process all the results returned from Google Maps API</span>
+
+<span class="sd">    Can iterate over the results. Each unique result will be an</span>
+<span class="sd">    instance of GeoResult.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">    results = GeocoderResult(data)</span>
+<span class="sd">    for result in results:</span>
+<span class="sd">        print result.formatted_address, result.coordinates</span>
+
+<span class="sd">    You can also customize the result_class created if you&#39;d like.</span>
+
+
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">result_class</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">result_class</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">data</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+
+</div>
+<div class="viewcode-block" id="Geocoder"><a class="viewcode-back" href="../index.html#ggeocoder.Geocoder">[docs]</a><span class="k">class</span> <span class="nc">Geocoder</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Interface for interacting with Google&#39;s Geocoding V3&#39;s API.</span>
+<span class="sd">    http://code.google.com/apis/maps/documentation/geocoding/</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">    &gt;&gt;&gt; results = Geocoder().geocode(&#39;1600 Amphitheatre Pkwy&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; for result in results:</span>
+<span class="sd">    ...   print result</span>
+<span class="sd">    ...   print result.coordinates</span>
+<span class="sd">    ...</span>
+<span class="sd">    1600 Amphitheatre Pkwy, Mountain View, CA 94043, USA</span>
+<span class="sd">    (37.4220827, -122.08289)</span>
+
+<span class="sd">    You can also do a reverse geocode lookup:</span>
+<span class="sd">    &gt;&gt;&gt; results = Geocoder().reverse_geocode(37.4220827, -122.08289)</span>
+<span class="sd">    &gt;&gt;&gt; for result in results:</span>
+<span class="sd">    ...   print result</span>
+<span class="sd">    ...   print result.coordinates</span>
+<span class="sd">    ...</span>
+<span class="sd">    Google Dr, Mountain View, CA 94043, USA</span>
+<span class="sd">    (37.4220893, -122.0828256)</span>
+<span class="sd">    Mountain View, CA 94043, USA</span>
+<span class="sd">    (37.428434, -122.0723816)</span>
+<span class="sd">    Mountain View, CA, USA</span>
+<span class="sd">    (37.3860517, -122.0838511)</span>
+<span class="sd">    Santa Clara, California, USA</span>
+<span class="sd">    (37.2938907, -121.7195459)</span>
+<span class="sd">    California, USA</span>
+<span class="sd">    (36.778261, -119.4179324)</span>
+<span class="sd">    United States</span>
+<span class="sd">    (37.09024, -95.712891)</span>
+
+<span class="sd">    You can provide any additional arguments accepted by the API by</span>
+<span class="sd">    passing them into the geocode (or reverse_geocode) methods.</span>
+
+<span class="sd">    For Example:</span>
+<span class="sd">    r = Geocoder().geocode(&#39;Toledo&#39;, region=&#39;es&#39;, language=&#39;es&#39;, sensor=&#39;true&#39;)</span>
+
+
+<span class="sd">    Additionally, If you have a Google Maps Premier account, you can</span>
+<span class="sd">    supply your credentials and the geocoder will make the request</span>
+<span class="sd">    with a properly signed url.</span>
+<span class="sd">    g = Geocoder(client_id=&#39;gme-clientID&#39;, private_key=&#39;PrivateKeySupplied&#39;)</span>
+<span class="sd">    g.geocode(&#39;1600 Amphitheatre Pkwy&#39;)</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">PREMIER_CREDENTIALS_ERROR</span> <span class="o">=</span> <span class="s">&quot;You must provide both a client_id and private_key to use Premier Account.&quot;</span>
+    <span class="n">GOOGLE_API_URL</span> <span class="o">=</span> <span class="s">&#39;http://maps.googleapis.com/maps/api/geocode/json?&#39;</span>
+    <span class="n">TIMEOUT_SECONDS</span> <span class="o">=</span> <span class="mi">3</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client_id</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">private_key</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Google Maps API Premier users can provide credentials to make 100,000</span>
+<span class="sd">        requests a day vs the standard 2,500 requests a day without</span>
+
+<span class="sd">        client_id and private_key would have been provided to you when</span>
+<span class="sd">        you received your initial Google Maps Premier account.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">credentials</span> <span class="o">=</span> <span class="p">(</span><span class="n">client_id</span><span class="p">,</span> <span class="n">private_key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">credentials</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">credentials</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">GeocodeError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PREMIER_CREDENTIALS_ERROR</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Geocoder.geocode"><a class="viewcode-back" href="../index.html#ggeocoder.Geocoder.geocode">[docs]</a>    <span class="k">def</span> <span class="nf">geocode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Params may be any valid parameter accepted by Google&#39;s API.</span>
+<span class="sd">        http://code.google.com/apis/maps/documentation/geocoding/#GeocodingRequests</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_geocoder_result</span><span class="p">(</span><span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Geocoder.reverse_geocode"><a class="viewcode-back" href="../index.html#ggeocoder.Geocoder.reverse_geocode">[docs]</a>    <span class="k">def</span> <span class="nf">reverse_geocode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lng</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Params may be any valid parameter accepted by Google&#39;s API.</span>
+<span class="sd">        http://code.google.com/apis/maps/documentation/geocoding/#GeocodingRequests</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_geocoder_result</span><span class="p">(</span><span class="n">latlng</span><span class="o">=</span><span class="s">&quot;</span><span class="si">%f</span><span class="s">,</span><span class="si">%f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">lat</span><span class="p">,</span> <span class="n">lng</span><span class="p">),</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+</div>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">use_premier_key</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">credentials</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_geocoder_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">result_class</span><span class="o">=</span><span class="n">GeoResult</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
+        <span class="n">geo_params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;sensor&#39;</span><span class="p">:</span> <span class="s">&#39;false&#39;</span><span class="p">}</span> <span class="c"># API says sensor must always have a value</span>
+        <span class="n">geo_params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">GeocoderResult</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_results</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">geo_params</span><span class="p">),</span> <span class="n">result_class</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_request_url</span><span class="p">(</span><span class="n">params</span> <span class="ow">or</span> <span class="p">{})</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">TIMEOUT_SECONDS</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_response</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_process_response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">,</span> <span class="n">url</span><span class="p">):</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">j</span><span class="p">[</span><span class="s">&#39;status&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">GeocodeError</span><span class="o">.</span><span class="n">G_GEO_OK</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">GeocodeError</span><span class="p">(</span><span class="n">j</span><span class="p">[</span><span class="s">&#39;status&#39;</span><span class="p">],</span> <span class="n">url</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">j</span><span class="p">[</span><span class="s">&#39;results&#39;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_get_request_url</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="n">encoded_params</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlencode</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GOOGLE_API_URL</span> <span class="o">+</span> <span class="n">encoded_params</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_premier_key</span><span class="p">:</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_premier_url</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">url</span>
+
+    <span class="k">def</span> <span class="nf">_get_premier_url</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_url</span><span class="p">):</span>
+        <span class="n">client_id</span><span class="p">,</span> <span class="n">private_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">credentials</span>
+        <span class="n">url_with_client</span> <span class="o">=</span> <span class="n">base_url</span> <span class="o">+</span> <span class="s">&#39;&amp;client=&#39;</span> <span class="o">+</span> <span class="n">client_id</span>
+
+        <span class="n">url_signature</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_signature</span><span class="p">(</span><span class="n">url_with_client</span><span class="p">,</span> <span class="n">private_key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">url_with_client</span> <span class="o">+</span> <span class="s">&#39;&amp;signature=&#39;</span> <span class="o">+</span> <span class="n">url_signature</span>
+
+    <span class="k">def</span> <span class="nf">_generate_signature</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_url</span><span class="p">,</span> <span class="n">private_key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        http://code.google.com/apis/maps/documentation/webservices/index.html#PythonSignatureExample</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">urlparse</span><span class="o">.</span><span class="n">urlparse</span><span class="p">(</span><span class="n">base_url</span><span class="p">)</span>
+        <span class="n">url_to_sign</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s">&#39;?&#39;</span> <span class="o">+</span> <span class="n">url</span><span class="o">.</span><span class="n">query</span>
+        <span class="n">decoded_key</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">urlsafe_b64decode</span><span class="p">(</span><span class="n">private_key</span><span class="p">)</span>
+        <span class="n">signature</span> <span class="o">=</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">decoded_key</span><span class="p">,</span> <span class="n">url_to_sign</span><span class="p">,</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">base64</span><span class="o">.</span><span class="n">urlsafe_b64encode</span><span class="p">(</span><span class="n">signature</span><span class="o">.</span><span class="n">digest</span><span class="p">())</span>
+
+</div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">sys</span>
+    <span class="kn">from</span> <span class="nn">optparse</span> <span class="kn">import</span> <span class="n">OptionParser</span>
+        
+    <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Geocodes a location given on the command line.</span>
+<span class="sd">                </span>
+<span class="sd">        Usage:</span>
+<span class="sd">            ggeocoder.py &quot;1600 amphitheatre mountain view ca&quot; [YOUR_API_KEY]</span>
+<span class="sd">            ggeocoder.py 37.4218272,-122.0842409 [YOUR_API_KEY]</span>
+<span class="sd">                </span>
+<span class="sd">        When providing a latitude and longitude on the command line, ensure</span>
+<span class="sd">        they are separated by a comma and no space.</span>
+<span class="sd">                </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">usage</span> <span class="o">=</span> <span class="s">&quot;usage: %prog [options] address&quot;</span>
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">OptionParser</span><span class="p">(</span><span class="n">usage</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">VERSION</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s">&quot;-c&quot;</span><span class="p">,</span> <span class="s">&quot;--client_id&quot;</span><span class="p">,</span>
+                  <span class="n">dest</span><span class="o">=</span><span class="s">&quot;client_id&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Your Google Maps Client Id key&quot;</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s">&quot;-k&quot;</span><span class="p">,</span> <span class="s">&quot;--private_key&quot;</span><span class="p">,</span>
+                  <span class="n">dest</span><span class="o">=</span><span class="s">&quot;private_key&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Your Google Maps Private Signature key&quot;</span><span class="p">)</span>
+        <span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+                
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">parser</span><span class="o">.</span><span class="n">print_usage</span><span class="p">()</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                
+        <span class="n">query</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">gcoder</span> <span class="o">=</span> <span class="n">Geocoder</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">client_id</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">private_key</span><span class="p">)</span>
+                
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">gcoder</span><span class="o">.</span><span class="n">geocode</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">GeocodeError</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="s">Response:</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">err</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">err</span><span class="o">.</span><span class="n">response</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
+            <span class="k">print</span> <span class="n">r</span>
+            <span class="k">print</span> <span class="n">r</span><span class="o">.</span><span class="n">coordinates</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">ggeocoder 1.0.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Aaron Madison.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.
+    </div>
+  </body>
+</html>
