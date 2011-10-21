@@ -18,7 +18,7 @@ except ImportError:
     import simplejson as json
 
 
-VERSION = '1.0.1'
+VERSION = '1.0.2'
 
 __all__ = ['Geocoder', 'GeocoderResult', 'GeoResult',  'GeocodeError',]
 
@@ -103,9 +103,6 @@ class GeoResult(object):
         for elem in self.data['address_components']:
             if attr in elem['types']:
                 return elem[prop]
-        else:
-            message = "'{0}' does not have the attribute '{1}'".format(self.__class__.__name__, attr)
-            raise AttributeError(message)
 
     @property
     def formatted_address(self):

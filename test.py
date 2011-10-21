@@ -1,17 +1,4 @@
 #!/usr/bin/env python
-#
-# Xiao Yu - Montreal - 2010
-# Based on googlemaps by John Kleint
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-"""
-Unit tests for ggeocoder.
-
-"""
 
 import mock
 from StringIO import StringIO
@@ -151,9 +138,8 @@ class GeoResultTests(unittest.TestCase):
     def test_can_lookup_by_short_name(self):
         self.assertEqual("US", self.result.country__short_name)
 
-    def test_raises_attribute_error_when_doesnt_have_attribute(self):
-        with self.assertRaises(AttributeError):
-            self.result.something
+    def test_returns_none_when_doesnt_have_attribute(self):
+        self.assertEqual(None, self.result.something)
 
     def test_two_geo_result_objects_are_equal_when_their_raw_data_is_equal(self):
         result_one = GeoResult(self.data)
