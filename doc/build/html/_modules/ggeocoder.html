@@ -71,17 +71,18 @@
 
 <span class="n">VERSION</span> <span class="o">=</span> <span class="s">&#39;1.0.0&#39;</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;Geocoder&#39;</span><span class="p">,</span> <span class="s">&#39;GeocodeError&#39;</span><span class="p">,</span> <span class="s">&#39;GeoResult&#39;</span><span class="p">,</span> <span class="s">&#39;GeocoderResult&#39;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;Geocoder&#39;</span><span class="p">,</span> <span class="s">&#39;GeocoderResult&#39;</span><span class="p">,</span> <span class="s">&#39;GeoResult&#39;</span><span class="p">,</span>  <span class="s">&#39;GeocodeError&#39;</span><span class="p">,]</span>
 
 <div class="viewcode-block" id="GeocodeError"><a class="viewcode-back" href="../index.html#ggeocoder.GeocodeError">[docs]</a><span class="k">class</span> <span class="nc">GeocodeError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Base class for errors in the :mod:`ggeocoder` module.</span>
 <span class="sd">        </span>
-<span class="sd">    Methods of the :class:`Geocoder` raise this when something goes wrong.</span>
+<span class="sd">    Methods of the :class:`Geocoder` raise this when the Google Maps API</span>
+<span class="sd">    returns a status of anything other than &#39;OK&#39;.</span>
 <span class="sd">        </span>
+<span class="sd">    See http://code.google.com/apis/maps/documentation/geocoding/index.html#StatusCodes</span>
+<span class="sd">    for status codes and their meanings.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c">#: See http://code.google.com/apis/maps/documentation/geocoding/index.html#StatusCodes</span>
-    <span class="c">#: for information on the meaning of these status codes.</span>
     <span class="n">G_GEO_OK</span> <span class="o">=</span> <span class="s">&quot;OK&quot;</span>
     <span class="n">G_GEO_ZERO_RESULTS</span> <span class="o">=</span> <span class="s">&quot;ZERO_RESULTS&quot;</span>
     <span class="n">G_GEO_OVER_QUERY_LIMIT</span> <span class="o">=</span> <span class="s">&quot;OVER_QUERY_LIMIT&quot;</span>
@@ -115,23 +116,13 @@
 </div>
 <div class="viewcode-block" id="GeoResult"><a class="viewcode-back" href="../index.html#ggeocoder.GeoResult">[docs]</a><span class="k">class</span> <span class="nc">GeoResult</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    A single geocoded json result.</span>
+<span class="sd">    Represents the data for a single result returned by the google maps api.</span>
+<span class="sd">    Allows you to access the data from the response using attributes instead</span>
+<span class="sd">    of diving deep into the returned dictionary structure.</span>
 
-<span class="sd">    Provide shortcut to ease field retrieval, looking at &#39;types&#39; in each</span>
-<span class="sd">    &#39;address_components&#39;.</span>
-<span class="sd">    Example:</span>
-<span class="sd">        result.country</span>
-<span class="sd">        result.postal_code</span>
-
-<span class="sd">    You can also choose a different property to display for each lookup type.</span>
-<span class="sd">    Example:</span>
-<span class="sd">        result.country__short_name</span>
-
-<span class="sd">    By default, use &#39;long_name&#39; property of lookup type, so:</span>
-<span class="sd">        result.country</span>
-<span class="sd">    and:</span>
-<span class="sd">        result.country__long_name</span>
-<span class="sd">    are equivalent.</span>
+<span class="sd">    You can create aliases for the default &#39;address_components&#39; of the response</span>
+<span class="sd">    by settings the `attr_mapping` field to a dict of your mapping.::</span>
+<span class="sd">      attr_mapping = {&#39;state&#39;: &#39;administrative_area_level_1&#39;}</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">attr_mapping</span> <span class="o">=</span> <span class="bp">None</span>
 
@@ -169,24 +160,35 @@
 
     <span class="nd">@property</span>
 <div class="viewcode-block" id="GeoResult.formatted_address"><a class="viewcode-back" href="../index.html#ggeocoder.GeoResult.formatted_address">[docs]</a>    <span class="k">def</span> <span class="nf">formatted_address</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;returns fully formatted address result.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s">&#39;formatted_address&#39;</span><span class="p">]</span>
 </div>
     <span class="nd">@property</span>
 <div class="viewcode-block" id="GeoResult.coordinates"><a class="viewcode-back" href="../index.html#ggeocoder.GeoResult.coordinates">[docs]</a>    <span class="k">def</span> <span class="nf">coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns lat, lng coordinates as float types</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">loc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s">&#39;geometry&#39;</span><span class="p">][</span><span class="s">&#39;location&#39;</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">loc</span><span class="p">[</span><span class="s">&#39;lat&#39;</span><span class="p">],</span> <span class="n">loc</span><span class="p">[</span><span class="s">&#39;lng&#39;</span><span class="p">]</span>
 </div>
     <span class="nd">@property</span>
 <div class="viewcode-block" id="GeoResult.is_valid_address"><a class="viewcode-back" href="../index.html#ggeocoder.GeoResult.is_valid_address">[docs]</a>    <span class="k">def</span> <span class="nf">is_valid_address</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns True when geocode result is a street address, False if not</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s">&#39;types&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="s">&#39;street_address&#39;</span><span class="p">]</span>
 </div>
     <span class="nd">@property</span>
 <div class="viewcode-block" id="GeoResult.raw"><a class="viewcode-back" href="../index.html#ggeocoder.GeoResult.raw">[docs]</a>    <span class="k">def</span> <span class="nf">raw</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the raw dictionary object that the maps api returned</span>
+<span class="sd">        for this single result.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span>
 
 
 </div></div>
-<div class="viewcode-block" id="GeocoderResult"><a class="viewcode-back" href="../index.html#ggeocoder.GeocoderResult">[docs]</a><span class="k">class</span> <span class="nc">GeocoderResult</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">GeocoderResult</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Helps process all the results returned from Google Maps API</span>
 
@@ -200,9 +202,6 @@
 
 <span class="sd">    You can also customize the result_class created if you&#39;d like.</span>
 
-
-
-
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">result_class</span><span class="p">):</span>
@@ -214,53 +213,15 @@
     <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
 
-</div>
+
 <div class="viewcode-block" id="Geocoder"><a class="viewcode-back" href="../index.html#ggeocoder.Geocoder">[docs]</a><span class="k">class</span> <span class="nc">Geocoder</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Interface for interacting with Google&#39;s Geocoding V3&#39;s API.</span>
 <span class="sd">    http://code.google.com/apis/maps/documentation/geocoding/</span>
 
-<span class="sd">    Example:</span>
-<span class="sd">    &gt;&gt;&gt; results = Geocoder().geocode(&#39;1600 Amphitheatre Pkwy&#39;)</span>
-<span class="sd">    &gt;&gt;&gt; for result in results:</span>
-<span class="sd">    ...   print result</span>
-<span class="sd">    ...   print result.coordinates</span>
-<span class="sd">    ...</span>
-<span class="sd">    1600 Amphitheatre Pkwy, Mountain View, CA 94043, USA</span>
-<span class="sd">    (37.4220827, -122.08289)</span>
-
-<span class="sd">    You can also do a reverse geocode lookup:</span>
-<span class="sd">    &gt;&gt;&gt; results = Geocoder().reverse_geocode(37.4220827, -122.08289)</span>
-<span class="sd">    &gt;&gt;&gt; for result in results:</span>
-<span class="sd">    ...   print result</span>
-<span class="sd">    ...   print result.coordinates</span>
-<span class="sd">    ...</span>
-<span class="sd">    Google Dr, Mountain View, CA 94043, USA</span>
-<span class="sd">    (37.4220893, -122.0828256)</span>
-<span class="sd">    Mountain View, CA 94043, USA</span>
-<span class="sd">    (37.428434, -122.0723816)</span>
-<span class="sd">    Mountain View, CA, USA</span>
-<span class="sd">    (37.3860517, -122.0838511)</span>
-<span class="sd">    Santa Clara, California, USA</span>
-<span class="sd">    (37.2938907, -121.7195459)</span>
-<span class="sd">    California, USA</span>
-<span class="sd">    (36.778261, -119.4179324)</span>
-<span class="sd">    United States</span>
-<span class="sd">    (37.09024, -95.712891)</span>
-
-<span class="sd">    You can provide any additional arguments accepted by the API by</span>
-<span class="sd">    passing them into the geocode (or reverse_geocode) methods.</span>
-
-<span class="sd">    For Example:</span>
-<span class="sd">    r = Geocoder().geocode(&#39;Toledo&#39;, region=&#39;es&#39;, language=&#39;es&#39;, sensor=&#39;true&#39;)</span>
-
-
-<span class="sd">    Additionally, If you have a Google Maps Premier account, you can</span>
-<span class="sd">    supply your credentials and the geocoder will make the request</span>
-<span class="sd">    with a properly signed url.</span>
-<span class="sd">    g = Geocoder(client_id=&#39;gme-clientID&#39;, private_key=&#39;PrivateKeySupplied&#39;)</span>
-<span class="sd">    g.geocode(&#39;1600 Amphitheatre Pkwy&#39;)</span>
-<span class="sd">    </span>
+<span class="sd">    If you have a Google Maps Premier account, you can supply your</span>
+<span class="sd">    client_id and private_key and the :class:`Geocoder` will make</span>
+<span class="sd">    the request with a properly signed url</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">PREMIER_CREDENTIALS_ERROR</span> <span class="o">=</span> <span class="s">&quot;You must provide both a client_id and private_key to use Premier Account.&quot;</span>
     <span class="n">GOOGLE_API_URL</span> <span class="o">=</span> <span class="s">&#39;http://maps.googleapis.com/maps/api/geocode/json?&#39;</span>
@@ -273,6 +234,12 @@
 
 <span class="sd">        client_id and private_key would have been provided to you when</span>
 <span class="sd">        you received your initial Google Maps Premier account.</span>
+
+<span class="sd">        :param client_id: client id for Premier account &#39;gme-youridentifier&#39;</span>
+<span class="sd">        :type client_id: str</span>
+<span class="sd">        :param private_key: private key used to sign urls</span>
+<span class="sd">        :type private_key: str</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">credentials</span> <span class="o">=</span> <span class="p">(</span><span class="n">client_id</span><span class="p">,</span> <span class="n">private_key</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">credentials</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">credentials</span><span class="p">):</span>
@@ -280,17 +247,17 @@
 
 <div class="viewcode-block" id="Geocoder.geocode"><a class="viewcode-back" href="../index.html#ggeocoder.Geocoder.geocode">[docs]</a>    <span class="k">def</span> <span class="nf">geocode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Params may be any valid parameter accepted by Google&#39;s API.</span>
-<span class="sd">        http://code.google.com/apis/maps/documentation/geocoding/#GeocodingRequests</span>
+<span class="sd">        | Params may be any valid parameter accepted by Google&#39;s API.</span>
+<span class="sd">        | http://code.google.com/apis/maps/documentation/geocoding/#GeocodingRequests</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_geocoder_result</span><span class="p">(</span><span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
 </div>
 <div class="viewcode-block" id="Geocoder.reverse_geocode"><a class="viewcode-back" href="../index.html#ggeocoder.Geocoder.reverse_geocode">[docs]</a>    <span class="k">def</span> <span class="nf">reverse_geocode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lng</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Params may be any valid parameter accepted by Google&#39;s API.</span>
-<span class="sd">        http://code.google.com/apis/maps/documentation/geocoding/#GeocodingRequests</span>
+<span class="sd">        | Params may be any valid parameter accepted by Google&#39;s API.</span>
+<span class="sd">        | http://code.google.com/apis/maps/documentation/geocoding/#GeocodingRequests</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_geocoder_result</span><span class="p">(</span><span class="n">latlng</span><span class="o">=</span><span class="s">&quot;</span><span class="si">%f</span><span class="s">,</span><span class="si">%f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">lat</span><span class="p">,</span> <span class="n">lng</span><span class="p">),</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_geocoder_result</span><span class="p">(</span><span class="n">latlng</span><span class="o">=</span><span class="s">&quot;</span><span class="si">%s</span><span class="s">,</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">lat</span><span class="p">,</span> <span class="n">lng</span><span class="p">),</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
 </div>
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">use_premier_key</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
