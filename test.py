@@ -162,6 +162,15 @@ class GeoResultTests(unittest.TestCase):
         self.assertEqual(u'California', t.state)
         self.assertEqual(u'CA', t.state__short_name)
 
+    def test_custom_mapped_attrs_support_dunder_lookup(self):
+        class TestResult(GeoResult):
+            attr_mapping = {
+                'state': 'administrative_area_level_1__short_name',
+            }
+
+        t = TestResult(self.data)
+        self.assertEqual(u'CA', t.state)
+
         
 class GeocoderResultTests(unittest.TestCase):
 

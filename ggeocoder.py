@@ -90,19 +90,28 @@ class GeoResult(object):
         return self.formatted_address
     
     def __getattr__(self, name):
+        attr, prop = self.get_property_components(name)
+
+        for elem in self.data['address_components']:
+            if attr in elem['types']:
+                return elem[prop]
+
+    def get_property_components(self, name):
         lookup = name.split('__')
         attr = lookup[0]
 
         # customization can allow a mapping of attribute shortcuts to look up.
         if self.attr_mapping:
             attr = self.attr_mapping.get(attr, attr)
+            if '__' in attr:
+                return self.get_property_components(attr)
 
-        try: prop = lookup[1]
-        except IndexError: prop = 'long_name'
+        try:
+            prop = lookup[1]
+        except IndexError:
+            prop = 'long_name'
 
-        for elem in self.data['address_components']:
-            if attr in elem['types']:
-                return elem[prop]
+        return attr, prop
 
     @property
     def formatted_address(self):
