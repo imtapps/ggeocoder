@@ -8,9 +8,9 @@ Python library for using Google Geocoding API V3.
 import base64
 import hashlib
 import hmac
-import urllib
-import urllib2
-import urlparse
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
+import urllib.parse
 
 try:
     import json
@@ -18,9 +18,10 @@ except ImportError:
     import simplejson as json
 
 
-VERSION = '1.0.2'
+VERSION = '2.0.0'
 
 __all__ = ['Geocoder', 'GeocoderResult', 'GeoResult',  'GeocodeError',]
+
 
 class GeocodeError(Exception):
     """
@@ -58,10 +59,7 @@ class GeocodeError(Exception):
     def __str__(self):
         """Return a string representation of this :exc:`GeocoderError`."""
         return 'Error: {0}\nQuery: {1}'.format(self.status, self.url)
-        
-    def __unicode__(self, *args, **kwargs):
-        """Return a unicode representation of this :exc:`GeocoderError`."""
-        return unicode(self.__str__())
+
 
 class GeoResult(object):
     """
@@ -84,9 +82,6 @@ class GeoResult(object):
         return False
 
     def __str__(self):
-        return unicode(self).encode('utf-8')
-
-    def __unicode__(self):
         return self.formatted_address
     
     def __getattr__(self, name):
@@ -225,7 +220,7 @@ class Geocoder(object):
 
     def _get_results(self, params=None):
         url = self._get_request_url(params or {})
-        response = urllib2.urlopen(url, timeout=self.TIMEOUT_SECONDS)
+        response = urllib.request.urlopen(url, timeout=self.TIMEOUT_SECONDS)
         return self._process_response(response, url)
 
     def _process_response(self, response, url):
@@ -235,7 +230,7 @@ class Geocoder(object):
         return j['results']
 
     def _get_request_url(self, params):
-        encoded_params = urllib.urlencode(params)
+        encoded_params = urllib.parse.urlencode(params)
         url = self.GOOGLE_API_URL + encoded_params
         if self.use_premier_key:
             url = self._get_premier_url(url)
@@ -252,11 +247,11 @@ class Geocoder(object):
         """
         http://code.google.com/apis/maps/documentation/webservices/index.html#PythonSignatureExample
         """
-        url = urlparse.urlparse(base_url)
+        url = urllib.parse.urlparse(base_url)
         url_to_sign = url.path + '?' + url.query
         decoded_key = base64.urlsafe_b64decode(private_key)
-        signature = hmac.new(decoded_key, url_to_sign, hashlib.sha1)
-        return base64.urlsafe_b64encode(signature.digest())
+        signature = hmac.new(decoded_key, url_to_sign.encode(), hashlib.sha1)
+        return base64.urlsafe_b64encode(signature.digest()).decode('utf-8')
 
 
 if __name__ == "__main__":
@@ -292,12 +287,12 @@ if __name__ == "__main__":
                 
         try:
             result = gcoder.geocode(query)
-        except GeocodeError, err:
+        except GeocodeError as err:
             sys.stderr.write('%s\n%s\nResponse:\n' % (err.url, err))
             json.dump(err.response, sys.stderr, indent=4)
             sys.exit(1)
                 
         for r in result:
-            print r
-            print r.coordinates
+            print(r)
+            print(r.coordinates)
     main()

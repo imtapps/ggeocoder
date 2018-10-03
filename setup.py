@@ -2,7 +2,7 @@
 
 
 import os
-from distutils.core import setup
+from setuptools import setup
 
 import ggeocoder
 
@@ -12,7 +12,7 @@ setup(
     author='Aaron Madison',
     url='https://github.com/imtapps/ggeocoder',
     description='A Python library for working with Google Geocoding API V3.',
-    long_description=file(
+    long_description=open(
         os.path.join(os.path.dirname(__file__), 'README.rst')
     ).read(),
     py_modules=['ggeocoder'],
@@ -23,7 +23,7 @@ setup(
         'Intended Audience :: Developers',
         'Natural Language :: English',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 3',
         'License :: OSI Approved :: BSD License',
         'Topic :: Internet',
         'Topic :: Internet :: WWW/HTTP',
