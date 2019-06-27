@@ -176,7 +176,7 @@ class Geocoder(object):
     client_id and private_key and the :class:`Geocoder` will make
     the request with a properly signed url
     """
-    PREMIER_CREDENTIALS_ERROR = "You must provide both a client_id and private_keyto use Premier Account."  # noqa: E501
+    PREMIER_CREDENTIALS_ERROR = "You must provide both a client_id and private_key to use Premier Account."  # noqa: E501
     GOOGLE_API_URL = 'https://maps.googleapis.com/maps/api/geocode/json?'
     TIMEOUT_SECONDS = 3
 
