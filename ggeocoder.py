@@ -8,9 +8,16 @@ Python library for using Google Geocoding API V3.
 import base64
 import hashlib
 import hmac
-import urllib.request, urllib.parse, urllib.error
-import urllib.request, urllib.error, urllib.parse
-import urllib.parse
+import sys
+
+if sys.version_info > (3, 0):
+    from urllib.parse import urlencode
+    from urllib.parse import urlparse, urlencode
+    from urllib.request import urlopen
+else:
+    from urllib import urlencode
+    from urllib2 import urlopen
+    from urlparse import urlparse
 
 try:
     import json
@@ -219,13 +226,11 @@ class Geocoder(object):
         return all(self.credentials)
 
     def _get_geocoder_result(self, result_class=GeoResult, **params):
-        geo_params = {'sensor': 'false'} # API says sensor must always have a value
-        geo_params.update(params)
-        return GeocoderResult(self._get_results(params=geo_params), result_class)
+        return GeocoderResult(self._get_results(params=params), result_class)
 
     def _get_results(self, params=None):
         url = self._get_request_url(params or {})
-        response = urllib.request.urlopen(url, timeout=self.TIMEOUT_SECONDS)
+        response = urlopen(url, timeout=self.TIMEOUT_SECONDS)
         return self._process_response(response, url)
 
     def _process_response(self, response, url):
@@ -235,7 +240,7 @@ class Geocoder(object):
         return j['results']
 
     def _get_request_url(self, params):
-        encoded_params = urllib.parse.urlencode(params)
+        encoded_params = urlencode(params)
         url = self.GOOGLE_API_URL + encoded_params
         if self.api_key:
             url = url + "&key={}".format(self.api_key)
@@ -254,7 +259,7 @@ class Geocoder(object):
         """
         http://code.google.com/apis/maps/documentation/webservices/index.html#PythonSignatureExample
         """
-        url = urllib.parse.urlparse(base_url)
+        url = urlparse(base_url)
         url_to_sign = url.path + '?' + url.query
         decoded_key = base64.urlsafe_b64decode(private_key)
         signature = hmac.new(decoded_key, url_to_sign.encode(), hashlib.sha1)
