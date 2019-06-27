@@ -167,17 +167,17 @@ class GeocoderResult(object):
 class Geocoder(object):
     """
     Interface for interacting with Google's Geocoding V3's API.
-    http://code.google.com/apis/maps/documentation/geocoding/
+    https://developers.google.com/maps/documentation/geocoding/start?csw=1
 
     If you have a Google Maps Premier account, you can supply your
     client_id and private_key and the :class:`Geocoder` will make
     the request with a properly signed url
     """
     PREMIER_CREDENTIALS_ERROR = "You must provide both a client_id and private_key to use Premier Account."
-    GOOGLE_API_URL = 'http://maps.googleapis.com/maps/api/geocode/json?'
+    GOOGLE_API_URL = 'https://maps.googleapis.com/maps/api/geocode/json?'
     TIMEOUT_SECONDS = 3
 
-    def __init__(self, client_id=None, private_key=None):
+    def __init__(self, client_id=None, private_key=None, api_key=None):
         """
         Google Maps API Premier users can provide credentials to make 100,000
         requests a day vs the standard 2,500 requests a day without
@@ -189,9 +189,14 @@ class Geocoder(object):
         :type client_id: str
         :param private_key: private key used to sign urls
         :type private_key: str
+        :param api_key: Google Maps API key.
+          this will trump if it is present. Google has moved away from the
+          "premier accounts" and now just requires an API key
+        :type api_key: str
 
         """
         self.credentials = (client_id, private_key)
+        self.api_key = api_key
         if any(self.credentials) and not all(self.credentials):
             raise GeocodeError(self.PREMIER_CREDENTIALS_ERROR)
 
@@ -232,7 +237,9 @@ class Geocoder(object):
     def _get_request_url(self, params):
         encoded_params = urllib.parse.urlencode(params)
         url = self.GOOGLE_API_URL + encoded_params
-        if self.use_premier_key:
+        if self.api_key:
+            url = url + "&key={}".format(self.api_key)
+        elif self.use_premier_key:
             url = self._get_premier_url(url)
         return url
 

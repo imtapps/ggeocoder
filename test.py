@@ -3,6 +3,7 @@
 import mock
 from io import StringIO
 import unittest
+from urllib.parse import urlencode
 
 try:
     import json
@@ -256,30 +257,30 @@ class GeocoderTests(unittest.TestCase):
         expected_url = self.base_url + '&client={0}&signature={1}'.format(self.client_id, self.known_signature)
         self.assertEqual(expected_url, premier_url)
 
-    @mock.patch('urllib.parse.urlencode')
-    def test_get_request_url_returns_url_with_params_when_not_premier(self, urlencode):
-        params = dict(address='New York', sensor='false')
-        urlencode.return_value = 'address=New+York&sensor=false'
+    def test_get_request_url_returns_url_with_params_when_not_premier(self):
+        params = dict(address='New York')
 
         g = Geocoder()
         request_url = g._get_request_url(params)
 
-        self.assertEqual(g.GOOGLE_API_URL + urlencode.return_value, request_url)
-        urlencode.assert_called_once_with(params)
+        self.assertEqual(g.GOOGLE_API_URL + urlencode(params), request_url)
 
-    @mock.patch('urllib.parse.urlencode')
-    @mock.patch.object(Geocoder, '_get_premier_url')
-    def test_gets_premier_url_when_supplied_credentials(self, get_premier_url, urlencode):
-        params = dict(address='New York', sensor='false')
-        urlencode.return_value = 'address=New+York&sensor=false'
+    def test_get_request_url_returns_url_uses_api_key_when_present(self):
+        params = dict(address='New York')
+
+        g = Geocoder(api_key="FAKE-API-KEY")
+        request_url = g._get_request_url(params)
+
+        self.assertEqual(g.GOOGLE_API_URL + urlencode(params) + "&key=FAKE-API-KEY", request_url)
+
+    def test_gets_premier_url_when_supplied_credentials(self):
+        params = dict(address='New York', sensor="false")
 
         g = Geocoder(client_id=self.client_id, private_key=self.private_key)
         request_url = g._get_request_url(params)
 
-        self.assertEqual(get_premier_url.return_value, request_url)
-
-        expected_url_to_pass = g.GOOGLE_API_URL + urlencode.return_value
-        get_premier_url.assert_called_once_with(expected_url_to_pass)
+        expected_url = g.GOOGLE_API_URL + urlencode(params) + '&client={0}&signature={1}'.format(self.client_id, self.known_signature)
+        self.assertEqual(expected_url, request_url)
         
     @mock.patch.object(Geocoder, '_process_response', mock.Mock())
     @mock.patch('urllib.request.urlopen')
@@ -365,6 +366,7 @@ class GeocoderTests(unittest.TestCase):
 
         Geocoder().reverse_geocode(lat, lng)
         get_results.assert_called_once_with(params=dict(latlng='37.421827,-122.0842409', sensor='false'))
+
 
 if __name__ == "__main__":
     unittest.main()
