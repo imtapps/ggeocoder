@@ -11,7 +11,6 @@ import hmac
 import sys
 
 if sys.version_info > (3, 0):
-    from urllib.parse import urlencode
     from urllib.parse import urlparse, urlencode
     from urllib.request import urlopen
 else:
@@ -27,17 +26,17 @@ except ImportError:
 
 VERSION = '2.0.0'
 
-__all__ = ['Geocoder', 'GeocoderResult', 'GeoResult',  'GeocodeError',]
+__all__ = ['Geocoder', 'GeocoderResult', 'GeoResult',  'GeocodeError']
 
 
 class GeocodeError(Exception):
     """
     Base class for errors in the :mod:`ggeocoder` module.
-        
+
     Methods of the :class:`Geocoder` raise this when the Google Maps API
     returns a status of anything other than 'OK'.
-        
-    See http://code.google.com/apis/maps/documentation/geocoding/index.html#StatusCodes
+
+    See http://code.google.com/apis/maps/documentation/geocoding/index.html#StatusCodes  # noqa: E501
     for status codes and their meanings.
     """
     G_GEO_OK = "OK"
@@ -45,10 +44,10 @@ class GeocodeError(Exception):
     G_GEO_OVER_QUERY_LIMIT = "OVER_QUERY_LIMIT"
     G_GEO_REQUEST_DENIED = "REQUEST_DENIED"
     G_GEO_MISSING_QUERY = "INVALID_REQUEST"
-        
+
     def __init__(self, status, url=None, response=None):
         """Create an exception with a status and optional full response.
-                
+
         :param status: Either a ``G_GEO_`` code or a string explaining the
          exception.
         :type status: int or string
@@ -56,13 +55,12 @@ class GeocodeError(Exception):
         :type url: string
         :param response: The actual response returned from Google, if any.
         :type response: dict
-                
         """
         super(GeocodeError, self).__init__(status)
         self.status = status
         self.url = url
         self.response = response
-        
+
     def __str__(self):
         """Return a string representation of this :exc:`GeocoderError`."""
         return 'Error: {0}\nQuery: {1}'.format(self.status, self.url)
@@ -90,7 +88,7 @@ class GeoResult(object):
 
     def __str__(self):
         return self.formatted_address
-    
+
     def __getattr__(self, name):
         attr, prop = self.get_property_components(name)
 
@@ -144,7 +142,6 @@ class GeoResult(object):
         return self.data
 
 
-
 class GeocoderResult(object):
     """
     Helps process all the results returned from Google Maps API
@@ -158,7 +155,6 @@ class GeocoderResult(object):
         print result.formatted_address, result.coordinates
 
     You can also customize the result_class created if you'd like.
-
     """
 
     def __init__(self, data, result_class):
@@ -180,7 +176,7 @@ class Geocoder(object):
     client_id and private_key and the :class:`Geocoder` will make
     the request with a properly signed url
     """
-    PREMIER_CREDENTIALS_ERROR = "You must provide both a client_id and private_key to use Premier Account."
+    PREMIER_CREDENTIALS_ERROR = "You must provide both a client_id and private_keyto use Premier Account."  # noqa: E501
     GOOGLE_API_URL = 'https://maps.googleapis.com/maps/api/geocode/json?'
     TIMEOUT_SECONDS = 3
 
@@ -200,7 +196,6 @@ class Geocoder(object):
           this will trump if it is present. Google has moved away from the
           "premier accounts" and now just requires an API key
         :type api_key: str
-
         """
         self.credentials = (client_id, private_key)
         self.api_key = api_key
@@ -210,14 +205,14 @@ class Geocoder(object):
     def geocode(self, address, **params):
         """
         | Params may be any valid parameter accepted by Google's API.
-        | http://code.google.com/apis/maps/documentation/geocoding/#GeocodingRequests
+        | http://code.google.com/apis/maps/documentation/geocoding/#GeocodingRequests  # noqa: E501
         """
         return self._get_geocoder_result(address=address, **params)
 
     def reverse_geocode(self, lat, lng, **params):
         """
         | Params may be any valid parameter accepted by Google's API.
-        | http://code.google.com/apis/maps/documentation/geocoding/#GeocodingRequests
+        | http://code.google.com/apis/maps/documentation/geocoding/#GeocodingRequests  # noqa: E501
         """
         return self._get_geocoder_result(latlng="%s,%s" % (lat, lng), **params)
 
@@ -269,41 +264,43 @@ class Geocoder(object):
 if __name__ == "__main__":
     import sys
     from optparse import OptionParser
-        
+
     def main():
         """
         Geocodes a location given on the command line.
-                
+
         Usage:
             ggeocoder.py "1600 amphitheatre mountain view ca" [YOUR_API_KEY]
             ggeocoder.py 37.4218272,-122.0842409 [YOUR_API_KEY]
-                
+
         When providing a latitude and longitude on the command line, ensure
         they are separated by a comma and no space.
-                
+
         """
         usage = "usage: %prog [options] address"
         parser = OptionParser(usage, version=VERSION)
         parser.add_option("-c", "--client_id",
-                  dest="client_id", help="Your Google Maps Client Id key")
+                          dest="client_id",
+                          help="Your Google Maps Client Id key")
         parser.add_option("-k", "--private_key",
-                  dest="private_key", help="Your Google Maps Private Signature key")
+                          dest="private_key",
+                          help="Your Google Maps Private Signature key")
         (options, args) = parser.parse_args()
-                
+
         if len(args) != 1:
             parser.print_usage()
             sys.exit(1)
-                
+
         query = args[0]
         gcoder = Geocoder(options.client_id, options.private_key)
-                
+
         try:
             result = gcoder.geocode(query)
         except GeocodeError as err:
             sys.stderr.write('%s\n%s\nResponse:\n' % (err.url, err))
             json.dump(err.response, sys.stderr, indent=4)
             sys.exit(1)
-                
+
         for r in result:
             print(r)
             print(r.coordinates)
