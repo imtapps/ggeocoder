@@ -89,6 +89,7 @@ google_address_result = """{
    "status" : "OK"
 }"""
 
+
 class GeocodeErrorTests(unittest.TestCase):
 
     def test_geocode_error_string_representation_contains_error_and_query(self):
