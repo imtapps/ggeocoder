@@ -1,13 +1,22 @@
 #!/usr/bin/env python
 
 import mock
-from StringIO import StringIO
+import sys
+
 import unittest
 
 try:
     import json
 except ImportError:
     import simplejson as json
+
+if sys.version_info > (3, 0):
+    from urllib.parse import urlencode
+    from io import StringIO
+else:
+    from urllib import urlencode
+    from cStringIO import StringIO
+
 
 from ggeocoder import Geocoder, GeoResult, GeocoderResult, GeocodeError
 
@@ -80,6 +89,7 @@ google_address_result = """{
    "status" : "OK"
 }"""
 
+
 class GeocodeErrorTests(unittest.TestCase):
 
     def test_geocode_error_string_representation_contains_error_and_query(self):
@@ -94,7 +104,8 @@ class GeocodeErrorTests(unittest.TestCase):
 
         with self.assertRaises(GeocodeError) as ctx:
             raise GeocodeError(status, url=query_url)
-        self.assertEqual(status, ctx.exception.message)
+        self.assertEqual(status, ctx.exception.args[0])
+
 
 class GeoResultTests(unittest.TestCase):
 
@@ -158,9 +169,9 @@ class GeoResultTests(unittest.TestCase):
             }
 
         t = TestResult(self.data)
-        self.assertEqual(u'94043', t.ZIP)
-        self.assertEqual(u'California', t.state)
-        self.assertEqual(u'CA', t.state__short_name)
+        self.assertEqual('94043', t.ZIP)
+        self.assertEqual('California', t.state)
+        self.assertEqual('CA', t.state__short_name)
 
     def test_custom_mapped_attrs_support_dunder_lookup(self):
         class TestResult(GeoResult):
@@ -169,7 +180,7 @@ class GeoResultTests(unittest.TestCase):
             }
 
         t = TestResult(self.data)
-        self.assertEqual(u'CA', t.state)
+        self.assertEqual('CA', t.state)
 
         
 class GeocoderResultTests(unittest.TestCase):
@@ -205,13 +216,14 @@ class GeocoderResultTests(unittest.TestCase):
         result = GeocoderResult(self.data, self.result_class)
         self.assertEqual([GeoResult(self.data[0]), GeoResult(self.data[1])], list(result))
 
+
 class GeocoderTests(unittest.TestCase):
 
     def setUp(self):
         self.private_key = 'vNIXE0xscrmjlyV-12Nj_BvUPaw='
         self.client_id = 'clientID'
-        self.base_url = 'http://maps.googleapis.com/maps/api/geocode/json?address=New+York&sensor=false'
-        self.known_signature = 'KrU1TzVQM7Ur0i8i7K3huiw3MsA=' # signature generated for above credentials
+        self.base_url = 'https://maps.googleapis.com/maps/api/geocode/json?address=New+York'
+        self.known_signature = 'chaRF2hTJKOScPr-RQCEhZbSzIE='  # signature generated for above credentials
 
     def test_accepts_client_id_and_private_key_on_initialization(self):
         g = Geocoder(client_id=self.client_id, private_key=self.private_key)
@@ -221,13 +233,13 @@ class GeocoderTests(unittest.TestCase):
         with self.assertRaises(GeocodeError) as ctx:
             Geocoder(client_id=self.client_id)
         msg = "You must provide both a client_id and private_key to use Premier Account."
-        self.assertEqual(msg, ctx.exception.message)
+        self.assertEqual(msg, ctx.exception.args[0])
 
     def test_raises_exception_when_private_key_provided_without_client_id(self):
         with self.assertRaises(GeocodeError) as ctx:
             Geocoder(private_key=self.private_key)
         msg = "You must provide both a client_id and private_key to use Premier Account."
-        self.assertEqual(msg, ctx.exception.message)
+        self.assertEqual(msg, ctx.exception.args[0])
 
     def test_allows_initialization_with_no_credentials(self):
         g = Geocoder()
@@ -254,47 +266,47 @@ class GeocoderTests(unittest.TestCase):
         expected_url = self.base_url + '&client={0}&signature={1}'.format(self.client_id, self.known_signature)
         self.assertEqual(expected_url, premier_url)
 
-    @mock.patch('urllib.urlencode')
-    def test_get_request_url_returns_url_with_params_when_not_premier(self, urlencode):
-        params = dict(address='New York', sensor='false')
-        urlencode.return_value = 'address=New+York&sensor=false'
+    def test_get_request_url_returns_url_with_params_when_not_premier(self):
+        params = dict(address='New York')
 
         g = Geocoder()
         request_url = g._get_request_url(params)
 
-        self.assertEqual(g.GOOGLE_API_URL + urlencode.return_value, request_url)
-        urlencode.assert_called_once_with(params)
+        self.assertEqual(g.GOOGLE_API_URL + urlencode(params), request_url)
 
-    @mock.patch('urllib.urlencode')
-    @mock.patch.object(Geocoder, '_get_premier_url')
-    def test_gets_premier_url_when_supplied_credentials(self, get_premier_url, urlencode):
-        params = dict(address='New York', sensor='false')
-        urlencode.return_value = 'address=New+York&sensor=false'
+    def test_get_request_url_returns_url_uses_api_key_when_present(self):
+        params = dict(address='New York')
+
+        g = Geocoder(api_key="FAKE-API-KEY")
+        request_url = g._get_request_url(params)
+
+        self.assertEqual(g.GOOGLE_API_URL + urlencode(params) + "&key=FAKE-API-KEY", request_url)
+
+    def test_gets_premier_url_when_supplied_credentials(self):
+        params = dict(address='New York')
 
         g = Geocoder(client_id=self.client_id, private_key=self.private_key)
         request_url = g._get_request_url(params)
 
-        self.assertEqual(get_premier_url.return_value, request_url)
-
-        expected_url_to_pass = g.GOOGLE_API_URL + urlencode.return_value
-        get_premier_url.assert_called_once_with(expected_url_to_pass)
+        expected_url = g.GOOGLE_API_URL + urlencode(params) + '&client={0}&signature={1}'.format(self.client_id, self.known_signature)
+        self.assertEqual(expected_url, request_url)
         
     @mock.patch.object(Geocoder, '_process_response', mock.Mock())
-    @mock.patch('urllib2.urlopen')
+    @mock.patch('ggeocoder.urlopen')
     @mock.patch.object(Geocoder, '_get_request_url')
     def test_get_results_opens_url_with_request_url_and_timeout(self, get_url, urlopen):
-        params = dict(address='New York', sensor='false')
+        params = dict(address='New York')
         
         g = Geocoder(client_id=self.client_id, private_key=self.private_key)
         g._get_results(params)
         get_url.assert_called_once_with(params)
         urlopen.assert_called_once_with(get_url.return_value, timeout=g.TIMEOUT_SECONDS)
 
-    @mock.patch('urllib2.urlopen')
+    @mock.patch('ggeocoder.urlopen')
     @mock.patch.object(Geocoder, '_get_request_url')
     @mock.patch.object(Geocoder, '_process_response')
     def test_get_results_returns_processed_response(self, process_response, get_url, urlopen):
-        params = dict(address='New York', sensor='false')
+        params = dict(address='New York')
 
         g = Geocoder(client_id=self.client_id, private_key=self.private_key)
         results = g._get_results(params)
@@ -331,8 +343,8 @@ class GeocoderTests(unittest.TestCase):
     def test_geocode_returns_result_by_address_and_additional_params(self, get_results, geocoder_result_class):
         mock_result_class = mock.Mock()
         address = "1600 Amphitheatre Pkwy"
-        result = Geocoder().geocode(address, sensor='true', result_class=mock_result_class)
-        get_results.assert_called_once_with(params=dict(address=address, sensor='true'))
+        result = Geocoder().geocode(address, result_class=mock_result_class)
+        get_results.assert_called_once_with(params=dict(address=address))
         geocoder_result_class.assert_called_once_with(get_results.return_value, mock_result_class)
         self.assertEqual(geocoder_result_class.return_value, result)
 
@@ -342,7 +354,7 @@ class GeocoderTests(unittest.TestCase):
         address = "1600 Amphitheatre Pkwy"
 
         Geocoder().geocode(address)
-        get_results.assert_called_once_with(params=dict(address=address, sensor='false'))
+        get_results.assert_called_once_with(params=dict(address=address))
 
     @mock.patch('ggeocoder.GeocoderResult')
     @mock.patch.object(Geocoder, '_get_results')
@@ -351,18 +363,11 @@ class GeocoderTests(unittest.TestCase):
 
         mock_result_class = mock.Mock()
 
-        result = Geocoder().reverse_geocode(lat, lng, sensor='true', language='fr', result_class=mock_result_class)
-        get_results.assert_called_once_with(params=dict(latlng='37.421827,-122.084241', sensor='true', language='fr'))
+        result = Geocoder().reverse_geocode(lat, lng, language='fr', result_class=mock_result_class)
+        get_results.assert_called_once_with(params=dict(latlng='37.421827,-122.084241', language='fr'))
         geocoder_result_class.assert_called_once_with(get_results.return_value, mock_result_class)
         self.assertEqual(geocoder_result_class.return_value, result)
 
-    @mock.patch('ggeocoder.GeocoderResult', mock.Mock(spec_set=GeocoderResult))
-    @mock.patch.object(Geocoder, '_get_results')
-    def test_reverse_geocode_adds_sensor_parameter_when_not_supplied(self, get_results):
-        lat, lng = 37.4218270, -122.0842409
-
-        Geocoder().reverse_geocode(lat, lng)
-        get_results.assert_called_once_with(params=dict(latlng='37.421827,-122.0842409', sensor='false'))
 
 if __name__ == "__main__":
     unittest.main()
